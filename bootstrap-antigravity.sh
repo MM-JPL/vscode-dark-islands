@@ -18,7 +18,13 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
 elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
     OS="Linux"
 else
-    OS="Linux"
+    OS="Unknown"
+fi
+
+if [[ "$OS" == "Unknown" ]]; then
+    echo "⚠️  Automatic installation not supported for this OS"
+    echo "   Detected OSTYPE: $OSTYPE"
+    exit 1
 fi
 
 echo "📥 Step 1: Downloading Islands Dark..."
@@ -51,13 +57,17 @@ fi
 
 echo ""
 echo "🧹 Step 3: Cleaning up..."
-read -p "   Remove temporary files? (y/n) " -n 1 -r
-echo ""
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-    rm -rf "$INSTALL_DIR"
-    echo "✓ Temporary files removed"
+if [ -t 0 ]; then
+    read -p "   Remove temporary files? (y/n) " -n 1 -r
+    echo ""
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        rm -rf "$INSTALL_DIR"
+        echo "✓ Temporary files removed"
+    else
+        echo "   Files kept at: $INSTALL_DIR"
+    fi
 else
-    echo "   Files kept at: $INSTALL_DIR"
+    echo "   Non-interactive shell detected; keeping temporary files at: $INSTALL_DIR"
 fi
 
 echo ""
