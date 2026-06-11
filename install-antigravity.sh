@@ -39,13 +39,20 @@ echo -e "${GREEN}✓ Antigravity IDE installation found${NC}"
 
 # Get the directory where this script is located
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PACKAGE_VERSION=$(awk -F'"' '/"version"[[:space:]]*:/ { print $4; exit }' "$SCRIPT_DIR/package.json")
+if [ -z "$PACKAGE_VERSION" ]; then
+    echo -e "${RED}❌ Could not read theme version from package.json${NC}"
+    exit 1
+fi
 
 echo ""
 echo "📦 Step 1: Installing Islands Dark theme extension..."
 
 # Install by copying to Antigravity IDE extensions directory
-EXT_DIR="$HOME/.antigravity-ide/extensions/bwya77.islands-dark-1.0.0"
-rm -rf "$EXT_DIR"
+EXT_BASE="$HOME/.antigravity-ide/extensions"
+EXT_DIR="$EXT_BASE/bwya77.islands-dark-$PACKAGE_VERSION"
+mkdir -p "$EXT_BASE"
+rm -rf "$EXT_BASE"/bwya77.islands-dark-*
 mkdir -p "$EXT_DIR"
 cp "$SCRIPT_DIR/package.json" "$EXT_DIR/"
 cp -r "$SCRIPT_DIR/themes" "$EXT_DIR/"
@@ -55,13 +62,6 @@ if [ -d "$EXT_DIR/themes" ]; then
 else
     echo -e "${RED}❌ Failed to install theme extension${NC}"
     exit 1
-fi
-
-# Remove extensions.json so Antigravity IDE rebuilds it cleanly on next launch
-EXT_JSON="$HOME/.antigravity-ide/extensions/extensions.json"
-if [ -f "$EXT_JSON" ]; then
-    rm -f "$EXT_JSON"
-    echo -e "${GREEN}✓ Cleared extensions.json (Antigravity IDE will rebuild it)${NC}"
 fi
 
 echo ""

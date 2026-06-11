@@ -42,43 +42,84 @@ echo "   3. Antigravity IDE will reload"
 # Step 3: Remove theme extension
 echo ""
 echo "🗑️  Step 3: Removing Islands Dark theme extension..."
-EXT_DIR="$HOME/.antigravity-ide/extensions/bwya77.islands-dark-1.0.0"
-if [ -d "$EXT_DIR" ] || [ -L "$EXT_DIR" ]; then
-    rm -rf "$EXT_DIR"
-    echo -e "${GREEN}✓ Theme extension removed${NC}"
+EXT_BASE="$HOME/.antigravity-ide/extensions"
+if [ -d "$EXT_BASE" ] || [ -L "$EXT_BASE" ]; then
+    removed_any=false
+    for ext_dir in "$EXT_BASE"/bwya77.islands-dark-*; do
+        if [ -e "$ext_dir" ] || [ -L "$ext_dir" ]; then
+            rm -rf "$ext_dir"
+            removed_any=true
+        fi
+    done
+    if [ "$removed_any" = true ]; then
+        echo -e "${GREEN}✓ Theme extension removed${NC}"
+    else
+        echo -e "${YELLOW}⚠️  No Islands Dark extension directories found${NC}"
+    fi
 else
-    echo -e "${YELLOW}⚠️  Extension directory not found (may already be removed)${NC}"
+    echo -e "${YELLOW}⚠️  Extensions directory not found (may already be removed)${NC}"
 fi
 
 # Step 4: Remove extension from extensions.json
 echo ""
 echo "📋 Step 4: Unregistering extension..."
 if command -v node &> /dev/null; then
-    node << 'UNREGISTER_SCRIPT'
+    if UNREGISTER_RESULT=$(node << 'UNREGISTER_SCRIPT'
 const fs = require('fs');
 const path = require('path');
 
 const extJsonPath = path.join(process.env.HOME, '.antigravity-ide', 'extensions', 'extensions.json');
-if (fs.existsSync(extJsonPath)) {
-    try {
-        let extensions = JSON.parse(fs.readFileSync(extJsonPath, 'utf8'));
-        const before = extensions.length;
-        extensions = extensions.filter(e =>
-            e.identifier?.id !== 'bwya77.islands-dark' &&
-            e.identifier?.id !== 'your-publisher-name.islands-dark'
-        );
-        if (extensions.length < before) {
-            fs.writeFileSync(extJsonPath, JSON.stringify(extensions));
-            console.log('Extension unregistered');
-        } else {
-            console.log('Extension was not registered');
-        }
-    } catch (e) {
-        console.log('Could not update extensions.json');
+if (!fs.existsSync(extJsonPath)) {
+    console.log('NO_FILE');
+    process.exit(1);
+}
+try {
+    const raw = fs.readFileSync(extJsonPath, 'utf8');
+    let extensions = JSON.parse(raw);
+    if (!Array.isArray(extensions)) {
+        console.log('PARSE_ERROR');
+        process.exit(1);
     }
+    const islandsDarkIds = new Set(['bwya77.islands-dark', 'your-publisher-name.islands-dark']);
+    const before = extensions.length;
+    extensions = extensions.filter(e => !islandsDarkIds.has(e?.identifier?.id));
+    if (extensions.length < before) {
+        fs.writeFileSync(extJsonPath, JSON.stringify(extensions, null, 2) + '\n');
+        console.log('REMOVED');
+        process.exit(0);
+    } else {
+        console.log('NO_ENTRY');
+        process.exit(1);
+    }
+} catch (e) {
+    console.log('ERROR');
+    process.exit(1);
 }
 UNREGISTER_SCRIPT
-    echo -e "${GREEN}✓ Extension unregistered${NC}"
+    ); then
+        if [ "$UNREGISTER_RESULT" = "REMOVED" ]; then
+            echo -e "${GREEN}✓ Extension unregistered${NC}"
+        else
+            echo -e "${YELLOW}⚠️  Unexpected unregister result: $UNREGISTER_RESULT${NC}"
+        fi
+    else
+        case "$UNREGISTER_RESULT" in
+            NO_FILE)
+                echo -e "${YELLOW}⚠️  No extensions.json found${NC}"
+                ;;
+            NO_ENTRY)
+                echo -e "${YELLOW}⚠️  Islands Dark was not registered${NC}"
+                ;;
+            PARSE_ERROR|ERROR)
+                echo -e "${YELLOW}⚠️  Could not update extensions.json${NC}"
+                ;;
+            *)
+                echo -e "${YELLOW}⚠️  Could not update extensions.json${NC}"
+                ;;
+        esac
+    fi
+else
+    echo -e "${YELLOW}⚠️  Node.js not found; cannot unregister extension automatically${NC}"
 fi
 
 # Step 5: Change theme
