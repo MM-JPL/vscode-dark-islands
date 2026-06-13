@@ -108,7 +108,8 @@ SETTINGS_FILE="$SETTINGS_DIR/settings.json"
 
 # Backup existing settings if they exist, then merge
 if [ -f "$SETTINGS_FILE" ]; then
-    BACKUP_FILE="$SETTINGS_FILE.pre-islands-dark"
+    TIMESTAMP=$(date +"%Y%m%d-%H%M%S")
+    BACKUP_FILE="$SETTINGS_FILE.pre-islands-dark.$TIMESTAMP"
     cp "$SETTINGS_FILE" "$BACKUP_FILE"
     echo -e "${YELLOW}⚠️  Existing settings.json backed up to:${NC}"
     echo "   $BACKUP_FILE"
