@@ -13,14 +13,16 @@ trap cleanup EXIT
 
 settings_dir="$tmp_home/.config/Antigravity IDE/User"
 settings_file="$settings_dir/settings.json"
-backup_file="$settings_file.pre-islands-dark"
+backup_file="$settings_file.pre-islands-dark.20260613-120001"
+later_backup_file="$settings_file.pre-islands-dark.20260613-120002"
 ext_dir="$tmp_home/.antigravity-ide/extensions/bwya77.islands-dark-0.0.2"
 ext_json="$tmp_home/.antigravity-ide/extensions/extensions.json"
 
 mkdir -p "$settings_dir" "$ext_dir" "$(dirname "$ext_json")"
 printf '%s\n' '{"workbench.colorTheme":"Islands Dark"}' > "$settings_file"
 printf '%s\n' '{"workbench.colorTheme":"Default Dark+"}' > "$backup_file"
-printf '%s\n' '[{"identifier":{"id":"bwya77.islands-dark"}},{"identifier":{"id":"other.extension"}}]' > "$ext_json"
+printf '%s\n' '{"workbench.colorTheme":"Islands Dark"}' > "$later_backup_file"
+printf '%s\n' '[{"identifier":{"id":"bwya77.islands-dark"}},{"identifier":{"id":"your-publisher-name.islands-dark"}},{"identifier":{"id":"other.extension"}}]' > "$ext_json"
 
 if HOME="$tmp_home" OSTYPE=linux-gnu /bin/bash "$repo_root/uninstall-antigravity.sh" >"$output_file" 2>&1; then
   :
@@ -47,6 +49,14 @@ if command -v node >/dev/null 2>&1; then
     :
   else
     echo "ERROR: Antigravity extension was not removed from extensions.json" >&2
+    cat "$output_file" >&2
+    exit 1
+  fi
+
+  if node -e "const fs=require('fs'); const data=JSON.parse(fs.readFileSync(process.argv[1], 'utf8')); process.exit(data.some(e => e.identifier?.id === 'your-publisher-name.islands-dark') ? 0 : 1);" "$ext_json"; then
+    :
+  else
+    echo "ERROR: placeholder extension ID should not be removed from extensions.json" >&2
     cat "$output_file" >&2
     exit 1
   fi
